@@ -44,7 +44,6 @@ object ConfigLoader {
         line.split("=", 2).nn match {
           case Array(key, value) =>
             Some(key.nn.trim.nn -> value.nn.trim.nn.replace("\"", ""))
-          case _                       => None
           case _: Array[String | Null] => None
         }
       }
