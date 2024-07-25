@@ -1,11 +1,21 @@
 package fr.esgi.al.funprog
 
+import config.ConfigLoader
+
+import scala.util.{Failure, Success}
+
 @main
 def Main(): Unit = {
-  println("Ici le programme principaaaaal")
-  // Le code suivant ne compilera pas.
-  // var tmp = null;
-  // var tmp2 = if (tmp == 1) "yes" else 1
+  ConfigLoader.load() match {
+    case Success(config) =>
+      println(s"App Name: ${config.name}")
+      println(s"Input File: ${config.inputFile}")
+      println(s"Output JSON File: ${config.outputJsonFile}")
+      println(s"Output CSV File: ${config.outputCsvFile}")
+      println(s"Output YAML File: ${config.outputYamlFile}")
 
-  // println(s"tmp: $tmp, tmp2: $tmp2")
+    case Failure(exception) =>
+      println(s"Failed to load configuration: ${exception.getMessage}")
+      System.exit(1)
+  }
 }
