@@ -108,22 +108,22 @@ object MowerParser {
       }
   }
 
-  private def parseInstructions(line: String): Try[List[Instruction]] = {
+  private def parseInstructions(line: String): Try[List[Char]] = {
     val instructions = line.map {
-      case 'G' => Success(TurnLeft)
-      case 'D' => Success(TurnRight)
-      case 'A' => Success(MoveForward)
+      case 'G' => Success('G')
+      case 'D' => Success('D')
+      case 'A' => Success('A')
       case invalid =>
         Failure[String](InvalidInstructionError(invalid): Throwable)
     }
 
     val errors = instructions.collect { case Failure(e) => e }
     if (errors.nonEmpty) {
-      Failure[List[Instruction]](
+      Failure[List[Char]](
         errors.headOption.getOrElse(InvalidInstructionError(' ')): Throwable
       )
     } else {
-      Success(instructions.collect { case Success(instr: Instruction) =>
+      Success(instructions.collect { case Success(instr: Char) =>
         instr
       }.toList)
     }

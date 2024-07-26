@@ -11,12 +11,26 @@ def Main(): Unit = {
   val configResult = loadConfig()
   configResult match {
     case Success(config) =>
-      val mowers = parseFile(config.inputFile)
-      println(mowers)
-      mowers match {
+      val mowersResult = parseFile(config.inputFile)
+      mowersResult match {
         case Success((lawn, mowers)) =>
-          println(lawn)
-          println(mowers)
+          println(s"Lawn: $lawn")
+          println(s"Mowers: $mowers")
+          val mowerManager = MowerManager(lawn)
+          val results = mowerManager.getMowerResults(mowers)
+          results.foreach(println)
+          val outputResult =
+            OutputResult(Limit(lawn.width, lawn.height), results)
+
+          val outputWriter = OutputWriter
+          val jsonResult = outputWriter.toJson(outputResult)
+          val csvResult = outputWriter.toCsv(outputResult)
+          println("Récapitulatif des tondeuses :")
+          println(jsonResult)
+          println("Récapitulatif des tondeuses en CSV :")
+          println(csvResult)
+          outputWriter.writeToFile(jsonResult, "output.json")
+          outputWriter.writeCsvToFile(csvResult, "output.csv")
         case Failure(exception) =>
           println(s"Failed to parse mowers: ${exception.getMessage}")
       }
