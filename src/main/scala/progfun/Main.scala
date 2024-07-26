@@ -29,8 +29,8 @@ def Main(): Unit = {
           println(jsonResult)
           println("Récapitulatif des tondeuses en CSV :")
           println(csvResult)
-          outputWriter.writeToFile(jsonResult, "output.json")
-          outputWriter.writeCsvToFile(csvResult, "output.csv")
+          outputWriter.writeToFile(jsonResult, config.outputJsonFile)
+          outputWriter.writeCsvToFile(csvResult, config.outputCsvFile)
         case Failure(exception) =>
           println(s"Failed to parse mowers: ${exception.getMessage}")
       }
