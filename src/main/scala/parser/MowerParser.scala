@@ -7,7 +7,7 @@ import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 object MowerParser {
-  def parseFile(filePath: String): Try[List[Mower]] = {
+  def parseFile(filePath: String): Try[(Lawn, List[Mower])] = {
     Option(getClass.getResourceAsStream(filePath)) match {
       case Some(stream) =>
         Try {
@@ -16,49 +16,71 @@ object MowerParser {
           parseLines(lines)
         }.flatten
       case None =>
-        Failure[List[Mower]](
+        Failure[(Lawn, List[Mower])](
           new java.io.FileNotFoundException(s"Resource $filePath not found")
         )
     }
   }
 
-  private def parseLines(lines: List[String]): Try[List[Mower]] = {
+  private def parseLines(lines: List[String]): Try[(Lawn, List[Mower])] = {
     lines match {
-      case Nil => Success(Nil)
-      case lawnSize :: tail =>
-        val (mowersTry, remainingLines) = parseMowers(tail)
-        mowersTry
+      case Nil =>
+        Failure[(Lawn, List[Mower])](InvalidPositionFormatError("Empty file"))
+      case lawnSizeLine :: tail =>
+        val lawnTry = parseLawnSize(lawnSizeLine)
+        val mowersTry = parseMowers(tail)
+        for {
+          lawn   <- lawnTry
+          mowers <- mowersTry
+        } yield (lawn, mowers)
     }
   }
 
-  private def parseMowers(
-      lines: List[String]): (Try[List[Mower]], List[String]) = {
-    lines match {
-      case Nil => (Success(Nil), Nil)
-      case positionLine :: instructionLine :: tail =>
-        val result = for {
-          pos   <- parsePosition(positionLine)
-          instr <- parseInstructions(instructionLine)
-          mower = Mower(pos, instr)
-          (remainingMowersTry, remainingLines) = parseMowers(tail)
-          remainingMowers <- remainingMowersTry
-        } yield (mower :: remainingMowers, remainingLines)
+  private def parseLawnSize(line: String): Try[Lawn] = {
+    val parts = splitAndClean(line)
+    if (parts.length != 2) {
+      Failure[Lawn](InvalidPositionFormatError(line))
+    } else {
+      Try {
+        val width = parts(0).toInt
+        val height = parts(1).toInt
+        Lawn(width, height)
+      }.recoverWith { case _: NumberFormatException =>
+        Failure[Lawn](InvalidPositionFormatError(line))
+      }
+    }
+  }
 
-        result match {
-          case Success((mowers, remainingLines)) =>
-            (Success(mowers), remainingLines)
-          case Failure(e) => (Failure[List[progfun.Mower]](e), tail)
+  private def parseMowers(lines: List[String]): Try[List[Mower]] = {
+    @scala.annotation.tailrec
+    def parseMowersHelper(
+        lines: List[String],
+        acc: List[Try[Mower]]): Try[List[Mower]] = lines match {
+      case Nil =>
+        val combined = acc.foldLeft[Try[List[Mower]]](Success(Nil)) {
+          (acc, tryMower) =>
+            for {
+              mowers <- acc
+              mower  <- tryMower
+            } yield mower :: mowers
         }
+        combined
+      case positionLine :: instructionLine :: tail =>
+        val posTry = parsePosition(positionLine)
+        val instrTry = parseInstructions(instructionLine)
+        val mowerTry = for {
+          pos   <- posTry
+          instr <- instrTry
+        } yield Mower(pos, instr)
+        parseMowersHelper(tail, mowerTry :: acc)
       case _ =>
-        (
-          Failure[List[progfun.Mower]](
-            InvalidPositionFormatError("Invalid input format")
-          ),
-          Nil
+        Failure[List[progfun.Mower]](
+          InvalidPositionFormatError("Invalid input format")
         )
     }
-  }
 
+    parseMowersHelper(lines, Nil)
+  }
   private def parsePosition(line: String): Try[Position] = {
     val parts = splitAndClean(line)
     if (parts.length != 3) {
