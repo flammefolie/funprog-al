@@ -1,11 +1,24 @@
 package fr.esgi.al.funprog
 
+import config.{ApplicationConfig, ConfigLoader}
+import progfun.*
+import progfun.MowerParser.parseFile
+
+import scala.util.{Failure, Success, Try}
+
 @main
 def Main(): Unit = {
-  println("Ici le programme principaaaaal")
-  // Le code suivant ne compilera pas.
-  // var tmp = null;
-  // var tmp2 = if (tmp == 1) "yes" else 1
+  val configResult = loadConfig()
+  configResult match {
+    case Success(config) =>
+      val mowers = parseFile(config.inputFile)
+      println(mowers)
+    case Failure(exception) =>
+      println(s"Failed to load configuration: ${exception.getMessage}")
+      System.exit(1)
+  }
+}
 
-  // println(s"tmp: $tmp, tmp2: $tmp2")
+def loadConfig(): Try[ApplicationConfig] = {
+  ConfigLoader.load()
 }
